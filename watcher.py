@@ -51,7 +51,7 @@ ATTR = cfg("ATTR", "70-mm")
 LANG = cfg("LANG", "cs_CZ")
 HORIZON_DAYS = int(cfg("HORIZON_DAYS", "45"))
 STATE_FILE = Path(cfg("STATE_FILE", "state.json"))
-NTFY_TOPIC = cfg("NTFY_TOPIC", "jungs-watchen-cinema-city-prag-1!2!3!5")
+NTFY_TOPIC = cfg("NTFY_TOPIC")
 NTFY_SERVER = cfg("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
 
 HEADERS = {"User-Agent": "cc-watcher/1.0 (personal ticket-availability checker)"}
