@@ -1,73 +1,73 @@
 # cc-watcher
 
-Watches Cinema City Praha Flora for new 70mm/IMAX screenings and ticket
-availability changes, and sends you a push notification via ntfy.sh.
-Runs for free on a schedule via GitHub Actions — no server of your own,
-no account signup, no API keys required.
+Watches [Cinema City Praha Flora](https://www.cinemacity.cz/) for new
+70mm/IMAX screenings and sends a push notification via [ntfy.sh](https://ntfy.sh)
+when one shows up. Runs for free on a schedule via GitHub Actions — no
+server, no account, no API keys.
+
+Built to track Christopher Nolan's *The Odyssey*, but works for any
+70mm/IMAX screening at this cinema.
+
+## How it works
+
+Every 15 minutes, a GitHub Actions workflow:
+
+1. Queries Cinema City's public JSON API for upcoming 70mm-tagged screenings
+2. Compares them against the last known state (`state.json`, committed back
+   to the repo each run)
+3. Sends a push notification for anything new
+
+**Currently alerts on:** new screenings appearing on the schedule.
+*(Sold-out → available-again and seat-count-increase checks exist in the
+code but are disabled — see `diff_states()` in `watcher.py` to re-enable.)*
+
+The first run after setup only initializes state — it won't alert on
+anything that's already on sale. Use `--force-report` for that.
 
 ## Setup
 
-1. **Pick a topic name.** ntfy.sh has no accounts — a "topic" is just a
-   URL path that acts like a private channel. Anyone who knows the exact
-   topic name can subscribe to it or post to it, so pick something long
-   and hard to guess, e.g. `cc-imax-alerts-x7q2m9` rather than
-   `my-alerts`. Do NOT use a short/guessable name for anything sensitive.
+1. **Pick an ntfy topic** — a random, hard-to-guess string (e.g.
+   `cc-imax-alerts-x7q2m9`). Anyone who knows it can read or post to it,
+   so don't use anything guessable.
+2. Subscribe to that topic in the [ntfy app](https://ntfy.sh/) (iOS/Android)
+   or at `https://ntfy.sh/your-topic-name` in a browser.
+3. Fork or clone this repo.
+4. Add your topic as a repo secret: **Settings → Secrets and variables →
+   Actions → New repository secret** → name it `NTFY_TOPIC`.
+5. Make sure Actions is enabled: **Settings → Actions → General**.
 
-2. **Get the ntfy app** on your phone (iOS/Android, free, from ntfy.sh)
-   or just open `https://ntfy.sh/your-topic-name` in a browser. Subscribe
-   to your topic name from step 1. That's the entire "account setup" —
-   nothing to register, no login.
+## Testing
 
-3. **Create a new GitHub repo** (public, so Actions minutes are
-   unlimited) and push these files to it.
+From the **Actions** tab → *Cinema City watcher* → **Run workflow**:
 
-4. **Add your topic as a repo secret**: GitHub repo → Settings → Secrets
-   and variables → Actions → New repository secret → name it
-   `NTFY_TOPIC`, paste your topic name (just the name, not the full URL).
+- Check **test_webhook** → sends one test notification, no API calls.
+- Check **force_report** → reports everything currently on sale,
+  ignoring saved state.
 
-5. **Enable Actions** if it's not already: Settings → Actions → General
-   → allow workflows to run.
+Or run locally:
 
-## Testing before you rely on it
+```bash
+pip install -r requirements.txt
+export NTFY_TOPIC="your-topic-name"
+python watcher.py --test-webhook
+python watcher.py --force-report
+```
 
-Don't just wait for the cron job — test it explicitly:
+## Configuration
 
-- **Test the notification only** (no API calls, just confirms ntfy will
-  reach your phone): go to the Actions tab → "Cinema City watcher" →
-  Run workflow → check "test_webhook" → Run. You should get a push
-  notification within a few seconds — if the ntfy app isn't open, it
-  should still arrive since ntfy.sh delivers via each platform's native
-  push service once subscribed.
+Set as environment variables (or repo secrets) if you want to point this
+at a different cinema or attribute:
 
-- **Test the full pipeline against real data**: Run workflow → check
-  "force_report" → Run. This reports every currently-on-sale matching
-  screening, ignoring saved state, so you should see real results
-  (or "No changes to report" if nothing is on sale right now).
-
-- **Test locally** (optional, needs Python 3.11+):
-  ```bash
-  pip install -r requirements.txt
-  export NTFY_TOPIC="your-topic-name"
-  python watcher.py --test-webhook     # just pings ntfy
-  python watcher.py --force-report     # shows everything currently on sale
-  python watcher.py --seed             # initializes state.json quietly
-  python watcher.py                    # normal run: only alerts on changes
-  ```
-
-## Normal operation
-
-Once confirmed working, just leave it — the workflow runs every 15
-minutes automatically, diffs against the last saved `state.json`
-(committed back to the repo each run), and only messages you when
-something actually changes: a new screening appears, a sold-out show
-opens back up, or more seats become available.
+| Variable | Default | Meaning |
+|---|---|---|
+| `NTFY_TOPIC` | — | required, your ntfy.sh topic |
+| `CINEMA_ID` | `1052` | Cinema City Praha Flora |
+| `ATTR` | `70-mm` | screening attribute to filter on |
+| `HORIZON_DAYS` | `45` | how far ahead to check |
 
 ## Notes
 
-- Change `CINEMA_ID`, `ATTR`, `HORIZON_DAYS` etc. as env vars in the
-  workflow file if you want to watch a different cinema or attribute.
-- GitHub disables scheduled workflows after 60 days with no repo
-  activity — not an issue here since each run commits `state.json`.
-- If you ever see 0 results even with `--force-report`, it likely means
-  tickets for the horizon window just haven't been released yet (Cinema
-  City tends to release ~1 week at a time, often Tuesday mornings).
+- This uses Cinema City's unofficial public API — no guarantees it stays
+  stable or doesn't rate-limit.
+- GitHub disables scheduled workflows after 60 days of repo inactivity;
+  not an issue here since each run commits `state.json`.
