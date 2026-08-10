@@ -1,0 +1,62 @@
+name: Cinema City watcher
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub may delay this by a few minutes under load,
+    # especially right at the top of the hour - that's normal.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    # Lets you trigger a run manually from the Actions tab, with options.
+    inputs:
+      force_report:
+        description: "Report all current matching screenings, ignoring saved state"
+        type: boolean
+        default: false
+      test_webhook:
+        description: "Just send a test notification to ntfy and exit"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # needed so the workflow can commit updated state.json back
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run watcher (test notification)
+        if: ${{ inputs.test_webhook == true }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python watcher.py --test-webhook
+
+      - name: Run watcher (force report)
+        if: ${{ inputs.test_webhook != true && inputs.force_report == true }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python watcher.py --force-report
+
+      - name: Run watcher (normal)
+        if: ${{ inputs.test_webhook != true && inputs.force_report != true }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python watcher.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "cc-watcher-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.json
+          git diff --staged --quiet || git commit -m "Update state [skip ci]"
+          git push
