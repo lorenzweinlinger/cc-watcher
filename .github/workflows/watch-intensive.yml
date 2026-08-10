@@ -1,12 +1,21 @@
-name: Cinema City watcher
+name: Cinema City watcher (intensive - release window)
+
+# Runs at a much tighter interval, but only during a narrow window around
+# when Cinema City is believed to release the following week's tickets
+# (observed to be roughly Tuesday mornings, ~06:30 local time).
+#
+# GitHub Actions cron is always in UTC, and Prague switches between
+# CET (UTC+1) and CEST (UTC+2) with daylight saving. Rather than
+# maintaining two schedules, this window is set wide enough to cover
+# both: 04:00-06:59 UTC covers 06:00-08:59 CEST (summer) and
+# 05:00-07:59 CET (winter). Adjust if you find the actual release time
+# differs.
 
 on:
   schedule:
-    # Every 15 minutes. GitHub may delay this by a few minutes under load,
-    # especially right at the top of the hour - that's normal.
-    - cron: "*/15 * * * *"
+    # Every 2 minutes, hours 4-6 UTC, Tuesdays only.
+    - cron: "*/2 4-6 * * 2"
   workflow_dispatch:
-    # Lets you trigger a run manually from the Actions tab, with options.
     inputs:
       force_report:
         description: "Report all current matching screenings, ignoring saved state"
@@ -18,14 +27,14 @@ on:
         default: false
 
 permissions:
-  contents: write   # needed so the workflow can commit updated state.json back
+  contents: write
 
 jobs:
   check:
     runs-on: ubuntu-latest
     concurrency:
-      # Shared with watch-intensive.yml - both write state.json, so only
-      # one push should happen at a time.
+      # Prevents overlapping runs from racing on the git push at the end -
+      # important at this polling frequency.
       group: cc-watcher-state
       cancel-in-progress: false
     steps:
@@ -63,6 +72,6 @@ jobs:
           git config user.name "cc-watcher-bot"
           git config user.email "actions@users.noreply.github.com"
           git add state.json
-          git diff --staged --quiet || git commit -m "Update state [skip ci]"
+          git diff --staged --quiet || git commit -m "Update state (intensive) [skip ci]"
           git pull --rebase
           git push
