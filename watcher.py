@@ -128,7 +128,7 @@ def diff_states(old, new, min_ratio_delta=0.002):
                 "priority": "default",
             })
             continue
-
+        """
         if prev.get("soldOut") and not ev["soldOut"]:
             alerts.append({
                 "title": "Tickets available again!",
@@ -148,6 +148,7 @@ def diff_states(old, new, min_ratio_delta=0.002):
                 "tags": "seat",
                 "priority": "default",
             })
+        """
 
     return alerts
 
