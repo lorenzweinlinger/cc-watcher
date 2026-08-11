@@ -1,0 +1,78 @@
+name: Cinema City watcher (Wednesday - 2 min)
+
+# Runs at a much tighter interval, but only on Wednesdays (all day, in
+# UTC). Ticket-drop timing seems to vary rather than sticking to one
+# reliable window, so rather than guessing a narrow hour range, this just
+# covers the full day at high frequency and leaves watch.yml running its
+# normal 15-minute cadence the rest of the week.
+#
+# Note: cron day-of-week is UTC-based. Wednesday 00:00-23:59 UTC covers
+# Wednesday 01:00 - Thursday 01:59 Prague time (CEST) or Wednesday
+# 00:00-23:59 - Wednesday 00:59 - Thursday 00:59 (CET), depending on
+# daylight saving - so this can spill a little into Tuesday night/
+# Thursday morning locally. Adjust the cron below if you want it pinned
+# exactly to Prague-local Wednesday instead.
+
+on:
+  schedule:
+    - cron: "*/2 * * * 3"   # every 2 minutes, Wednesdays only (0=Sun, 3=Wed)
+  workflow_dispatch:
+    inputs:
+      force_report:
+        description: "Report all current matching screenings, ignoring saved state"
+        type: boolean
+        default: false
+      test_webhook:
+        description: "Just send a test notification to ntfy and exit"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    concurrency:
+      # Shared with watch.yml - both write state.json, so only one push
+      # should happen at a time.
+      group: cc-watcher-state
+      cancel-in-progress: false
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run watcher (test notification)
+        if: ${{ inputs.test_webhook == true }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python watcher.py --test-webhook
+
+      - name: Run watcher (force report)
+        if: ${{ inputs.test_webhook != true && inputs.force_report == true }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python watcher.py --force-report
+
+      - name: Run watcher (normal)
+        if: ${{ inputs.test_webhook != true && inputs.force_report != true }}
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python watcher.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "cc-watcher-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.json
+          git diff --staged --quiet || git commit -m "Update state (Wednesday) [skip ci]"
+          git pull --rebase
+          git push
