@@ -5,7 +5,7 @@
     "time": "2026-08-12T12:50:00",
     "auditorium": "IMAX VOLVO",
     "soldOut": false,
-    "availabilityRatio": 0.0208,
+    "availabilityRatio": 0.0182,
     "bookingLink": "https://www.cinemacity.cz/cz/booking-router/launch/224118?lang=cs"
   },
   "224119": {
@@ -356,7 +356,7 @@
     "time": "2026-08-22T09:00:00",
     "auditorium": "IMAX VOLVO",
     "soldOut": false,
-    "availabilityRatio": 0.0208,
+    "availabilityRatio": 0.0182,
     "bookingLink": "https://www.cinemacity.cz/cz/booking-router/launch/224515?lang=cs"
   },
   "224516": {
