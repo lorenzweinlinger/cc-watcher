@@ -1,13 +1,4 @@
 {
-  "224120": {
-    "filmName": "Odyssea",
-    "date": "2026-08-12",
-    "time": "2026-08-12T20:30:00",
-    "auditorium": "IMAX VOLVO",
-    "soldOut": false,
-    "availabilityRatio": 0.0156,
-    "bookingLink": "https://www.cinemacity.cz/cz/booking-router/launch/224120?lang=cs"
-  },
   "224479": {
     "filmName": "Odyssea",
     "date": "2026-08-13",
@@ -131,7 +122,7 @@
     "time": "2026-08-16T12:50:00",
     "auditorium": "IMAX VOLVO",
     "soldOut": false,
-    "availabilityRatio": 0.0156,
+    "availabilityRatio": 0.0208,
     "bookingLink": "https://www.cinemacity.cz/cz/booking-router/launch/224492?lang=cs"
   },
   "224493": {
